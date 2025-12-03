@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState, useEffect } from "react";
 import IPodShell from "./iPodShell";
 import MenuList, { MenuItemData } from "../menus/MenuList";
 import NowPlaying from "../screens/NowPlaying";
@@ -8,7 +8,9 @@ import PhotoViewer from "../screens/PhotoViewer";
 import Clock from "../screens/Clock";
 import Settings from "../screens/Settings";
 import BootScreen from "../screens/BootScreen";
+import MusicUpload from "../screens/MusicUpload";
 import { useIPodStore } from "../../store/iPodStore";
+import { musicDB } from "../../lib/musicDB";
 import {
   songs,
   albums,
@@ -39,7 +41,24 @@ export default function IPodMain() {
     currentPhotoIndex,
     currentPhotoAlbumId,
     setCurrentPhoto,
+    userSongs,
+    setUserSongs,
+    userLibraryLoaded,
+    setUserLibraryLoaded,
   } = useIPodStore();
+
+  // Load user library from IndexedDB on mount
+  useEffect(() => {
+    if (!userLibraryLoaded) {
+      musicDB.getAllSongs().then((loadedSongs) => {
+        setUserSongs(loadedSongs);
+        setUserLibraryLoaded(true);
+      });
+    }
+  }, [userLibraryLoaded, setUserSongs, setUserLibraryLoaded]);
+
+  // Combine all songs (mock + user)
+  const allSongs = useMemo(() => [...songs, ...userSongs], [userSongs]);
 
   // Generate menu items based on current screen
   const menuItems = useMemo((): MenuItemData[] => {
@@ -66,6 +85,17 @@ export default function IPodMain() {
             { id: "albums", label: "Albums", hasSubmenu: true },
             { id: "songs", label: "Songs", hasSubmenu: true },
             { id: "genres", label: "Genres", hasSubmenu: true },
+            ...(userSongs.length > 0
+              ? [
+                  {
+                    id: "myMusic",
+                    label: "My Music",
+                    hasSubmenu: true,
+                    rightText: `${userSongs.length}`,
+                  },
+                ]
+              : []),
+            { id: "addMusic", label: "Add Music...", hasSubmenu: true },
           ];
 
         case "playlists":
@@ -92,7 +122,14 @@ export default function IPodMain() {
           }));
 
         case "songs":
-          return songs.map((s) => ({
+          return allSongs.map((s) => ({
+            id: `song-${s.id}`,
+            label: s.title,
+            rightText: s.artist,
+          }));
+
+        case "myMusic":
+          return userSongs.map((s) => ({
             id: `song-${s.id}`,
             label: s.title,
             rightText: s.artist,
@@ -214,7 +251,7 @@ export default function IPodMain() {
     }
 
     return [];
-  }, [currentScreen, currentSong, settings]);
+  }, [currentScreen, currentSong, settings, userSongs, allSongs]);
 
   const handleSelect = useCallback(() => {
     const { screenId, screenType, data } = currentScreen;
@@ -336,6 +373,20 @@ export default function IPodMain() {
         title: "Genres",
         selectedIndex: 0,
       });
+    } else if (itemId === "myMusic") {
+      navigateTo({
+        screenType: "menu",
+        screenId: "myMusic",
+        title: "My Music",
+        selectedIndex: 0,
+      });
+    } else if (itemId === "addMusic") {
+      navigateTo({
+        screenType: "musicUpload",
+        screenId: "addMusic",
+        title: "Add Music",
+        selectedIndex: 0,
+      });
     }
 
     // Artists
@@ -395,13 +446,16 @@ export default function IPodMain() {
     // Songs - play them
     else if (itemId.startsWith("song-")) {
       const songId = itemId.replace("song-", "");
-      const song = songs.find((s) => s.id === songId);
+      // Check both mock songs and user songs
+      const song = allSongs.find((s) => s.id === songId);
       if (song) {
         // Get the current list of songs for the queue
         let queue: Song[] = [];
 
         if (screenId === "songs") {
-          queue = songs;
+          queue = allSongs;
+        } else if (screenId === "myMusic") {
+          queue = userSongs;
         } else if (screenId.startsWith("album-")) {
           const albumTitle = (data as { albumTitle: string })?.albumTitle;
           queue = getSongsByAlbum(albumTitle);
@@ -549,6 +603,8 @@ export default function IPodMain() {
     settings,
     updateSettings,
     setCurrentPhoto,
+    allSongs,
+    userSongs,
   ]);
 
   // Render content based on screen type
@@ -584,6 +640,9 @@ export default function IPodMain() {
             selectedIndex={selectedIndex}
           />
         );
+
+      case "musicUpload":
+        return <MusicUpload />;
 
       default:
         return <MenuList items={menuItems} selectedIndex={selectedIndex} />;

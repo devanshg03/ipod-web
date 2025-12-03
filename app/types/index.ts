@@ -9,6 +9,9 @@ export interface Song {
   duration: number; // in seconds
   genre: string;
   year: number;
+  // For user-uploaded songs
+  isUserSong?: boolean;
+  audioBlob?: Blob;
 }
 
 export interface Album {
@@ -46,17 +49,17 @@ export interface PhotoAlbum {
   photos: string[]; // photo IDs
 }
 
-export type MenuItemType = 
-  | 'navigation' 
-  | 'action' 
-  | 'toggle' 
-  | 'select' 
-  | 'submenu'
-  | 'nowPlaying'
-  | 'coverFlow'
-  | 'photoViewer'
-  | 'clock'
-  | 'settings';
+export type MenuItemType =
+  | "navigation"
+  | "action"
+  | "toggle"
+  | "select"
+  | "submenu"
+  | "nowPlaying"
+  | "coverFlow"
+  | "photoViewer"
+  | "clock"
+  | "settings";
 
 export interface MenuItem {
   id: string;
@@ -76,21 +79,22 @@ export interface MenuScreen {
   parent?: string;
 }
 
-export type ScreenType = 
-  | 'menu' 
-  | 'nowPlaying' 
-  | 'coverFlow' 
-  | 'photoViewer' 
-  | 'photo'
-  | 'clock'
-  | 'stopwatch'
-  | 'timer'
-  | 'settings'
-  | 'about';
+export type ScreenType =
+  | "menu"
+  | "nowPlaying"
+  | "coverFlow"
+  | "photoViewer"
+  | "photo"
+  | "clock"
+  | "stopwatch"
+  | "timer"
+  | "settings"
+  | "about"
+  | "musicUpload";
 
 export interface iPodSettings {
-  shuffle: 'off' | 'songs' | 'albums';
-  repeat: 'off' | 'one' | 'all';
+  shuffle: "off" | "songs" | "albums";
+  repeat: "off" | "one" | "all";
   backlightTimer: number; // seconds, 0 = always on
   brightness: number; // 0-100
   clicker: boolean;
@@ -104,4 +108,3 @@ export interface NowPlayingState {
   queue: Song[];
   queueIndex: number;
 }
-
