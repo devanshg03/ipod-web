@@ -23,16 +23,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #0f0f23 0%, #1a1a3e 25%, #2d1b4e 50%, #1a1a3e 75%, #0f0f23 100%);
-  background-size: 400% 400%;
-  animation: gradientShift 15s ease infinite;
+  background: #f5f2eb;
   font-family: var(--font-ipod);
-}
-
-@keyframes gradientShift {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
 }
 
 /* iPod Container */
@@ -1033,9 +1025,3 @@ body {
   }
 }
 
-/* Light mode support - but iPod stays consistent */
-@media (prefers-color-scheme: light) {
-body {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  }
-}
