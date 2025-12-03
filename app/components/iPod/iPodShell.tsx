@@ -131,6 +131,14 @@ export default function IPodShell({
         return;
       }
 
+      // Handle volume adjustment on Now Playing screen
+      if (screenType === "nowPlaying" && currentSong) {
+        const delta = direction === "down" ? 5 : -5;
+        adjustVolume(delta);
+        showVolume();
+        return;
+      }
+
       // Handle photo viewer scrolling
       if (screenType === "photoViewer") {
         const photoData = data as { albumId: string };
@@ -165,6 +173,8 @@ export default function IPodShell({
       isScrubbing,
       currentSong,
       scrub,
+      adjustVolume,
+      showVolume,
     ]
   );
 

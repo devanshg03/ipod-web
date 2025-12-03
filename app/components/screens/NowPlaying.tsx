@@ -130,6 +130,14 @@ export default function NowPlaying() {
     audioEngine.seek(currentTime);
   }, [currentTime, isScrubbing, currentSong, isUserSong]);
 
+  // Sync volume changes to audio engine
+  useEffect(() => {
+    if (!currentSong || !isUserSong) return;
+
+    const audioEngine = getAudioEngine();
+    audioEngine.setVolume(settings.volume);
+  }, [settings.volume, currentSong, isUserSong]);
+
   // Fallback: Simulate playback timer for mock songs (only when not scrubbing)
   useEffect(() => {
     // Only simulate for mock songs (non-user songs)
