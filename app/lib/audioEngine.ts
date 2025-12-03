@@ -60,9 +60,15 @@ class AudioEngine {
   }
 
   // Load audio from a Blob
-  loadBlob(blob: Blob): void {
+  loadBlob(blob: Blob): Promise<void> {
     if (!this.audio) {
       this.initAudio();
+    }
+
+    // Pause and reset current audio to prevent interruption
+    if (this.audio) {
+      this.audio.pause();
+      this.audio.currentTime = 0;
     }
 
     // Revoke previous blob URL to prevent memory leaks
@@ -73,6 +79,34 @@ class AudioEngine {
     this.currentBlobUrl = URL.createObjectURL(blob);
     this.audio!.src = this.currentBlobUrl;
     this.audio!.load();
+
+    // Return a promise that resolves when audio is ready to play
+    return new Promise((resolve, reject) => {
+      if (!this.audio) {
+        reject(new Error("Audio element not initialized"));
+        return;
+      }
+
+      const handleCanPlay = () => {
+        this.audio!.removeEventListener("canplay", handleCanPlay);
+        this.audio!.removeEventListener("error", handleError);
+        resolve();
+      };
+
+      const handleError = () => {
+        this.audio!.removeEventListener("canplay", handleCanPlay);
+        this.audio!.removeEventListener("error", handleError);
+        reject(new Error("Failed to load audio"));
+      };
+
+      // If already ready, resolve immediately
+      if (this.audio.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {
+        resolve();
+      } else {
+        this.audio.addEventListener("canplay", handleCanPlay, { once: true });
+        this.audio.addEventListener("error", handleError, { once: true });
+      }
+    });
   }
 
   // Load audio from a URL (for demo/mock songs)
@@ -93,7 +127,34 @@ class AudioEngine {
 
   play(): Promise<void> {
     if (!this.audio) return Promise.resolve();
-    return this.audio.play();
+
+    // If audio is not ready, wait for it
+    if (this.audio.readyState < HTMLMediaElement.HAVE_FUTURE_DATA) {
+      return new Promise((resolve, reject) => {
+        const handleCanPlay = () => {
+          this.audio!.removeEventListener("canplay", handleCanPlay);
+          this.audio!.removeEventListener("error", handleError);
+          this.audio!.play().then(resolve).catch(reject);
+        };
+
+        const handleError = () => {
+          this.audio!.removeEventListener("canplay", handleCanPlay);
+          this.audio!.removeEventListener("error", handleError);
+          reject(new Error("Audio not ready"));
+        };
+
+        this.audio.addEventListener("canplay", handleCanPlay, { once: true });
+        this.audio.addEventListener("error", handleError, { once: true });
+      });
+    }
+
+    return this.audio.play().catch((error) => {
+      // Ignore AbortError - it means a new load interrupted the play request
+      if (error.name !== "AbortError") {
+        throw error;
+      }
+      return Promise.resolve();
+    });
   }
 
   pause(): void {
@@ -185,4 +246,3 @@ class AudioEngine {
 export const getAudioEngine = (): AudioEngine => AudioEngine.getInstance();
 
 export default AudioEngine;
-

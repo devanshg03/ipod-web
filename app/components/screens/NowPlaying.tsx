@@ -25,6 +25,7 @@ export default function NowPlaying() {
   } = useIPodStore();
 
   const audioLoadedRef = useRef<string | null>(null);
+  const isLoadingRef = useRef<boolean>(false);
   const isUserSong = currentSong?.isUserSong ?? false;
 
   // Load audio when song changes (for user songs)
@@ -33,24 +34,36 @@ export default function NowPlaying() {
 
     // Only load audio for user songs
     if (isUserSong && audioLoadedRef.current !== currentSong.id) {
+      isLoadingRef.current = true;
       const loadAudio = async () => {
         try {
           const blob = await musicDB.getAudioBlob(currentSong.id);
           if (blob) {
             const audioEngine = getAudioEngine();
-            audioEngine.loadBlob(blob);
+
+            // Wait for audio to be ready before proceeding
+            await audioEngine.loadBlob(blob);
             audioLoadedRef.current = currentSong.id;
+            isLoadingRef.current = false;
 
             // Set volume from settings
             audioEngine.setVolume(settings.volume);
 
-            // Auto-play if isPlaying is true
+            // Auto-play if isPlaying is true (only after load completes)
             if (isPlaying) {
-              audioEngine.play().catch(console.error);
+              audioEngine.play().catch((error) => {
+                // Silently handle AbortError - it's expected when switching tracks quickly
+                if (error.name !== "AbortError") {
+                  console.error("Failed to play audio:", error);
+                }
+              });
             }
+          } else {
+            isLoadingRef.current = false;
           }
         } catch (error) {
           console.error("Failed to load audio:", error);
+          isLoadingRef.current = false;
         }
       };
 
@@ -58,17 +71,27 @@ export default function NowPlaying() {
     } else if (!isUserSong) {
       // Reset for mock songs
       audioLoadedRef.current = null;
+      isLoadingRef.current = false;
     }
   }, [currentSong, isUserSong, isPlaying, settings.volume]);
 
-  // Handle play/pause for user songs
+  // Handle play/pause for user songs (only when isPlaying changes, not during loading)
   useEffect(() => {
     if (!currentSong || !isUserSong) return;
+
+    // Skip if we're currently loading or if song isn't loaded yet
+    if (isLoadingRef.current || audioLoadedRef.current !== currentSong.id)
+      return;
 
     const audioEngine = getAudioEngine();
 
     if (isPlaying) {
-      audioEngine.play().catch(console.error);
+      audioEngine.play().catch((error) => {
+        // Silently handle AbortError - it's expected when switching tracks quickly
+        if (error.name !== "AbortError") {
+          console.error("Failed to play audio:", error);
+        }
+      });
     } else {
       audioEngine.pause();
     }
