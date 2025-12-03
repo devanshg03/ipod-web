@@ -11,19 +11,7 @@ import BootScreen from "../screens/BootScreen";
 import MusicUpload from "../screens/MusicUpload";
 import { useIPodStore } from "../../store/iPodStore";
 import { musicDB } from "../../lib/musicDB";
-import {
-  songs,
-  albums,
-  artists,
-  playlists,
-  genres,
-  photoAlbums,
-  getSongsByAlbum,
-  getAlbumsByArtist,
-  getSongsByGenre,
-  getSongsByIds,
-  getPhotosByAlbum,
-} from "../../data/mockData";
+import { photoAlbums, getPhotosByAlbum } from "../../data/mockData";
 import { Song } from "../../types";
 
 export default function IPodMain() {
@@ -57,8 +45,84 @@ export default function IPodMain() {
     }
   }, [userLibraryLoaded, setUserSongs, setUserLibraryLoaded]);
 
-  // Combine all songs (mock + user)
-  const allSongs = useMemo(() => [...songs, ...userSongs], [userSongs]);
+  // All songs are user-uploaded songs
+  const allSongs = userSongs;
+
+  // Derive albums from user songs
+  const derivedAlbums = useMemo(() => {
+    const albumMap = new Map<
+      string,
+      {
+        title: string;
+        artist: string;
+        artwork: string;
+        year: number;
+        songs: string[];
+      }
+    >();
+
+    userSongs.forEach((song) => {
+      const albumKey = `${song.album}-${song.artist}`;
+      if (!albumMap.has(albumKey)) {
+        albumMap.set(albumKey, {
+          title: song.album,
+          artist: song.artist,
+          artwork:
+            song.albumArt ||
+            "linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)",
+          year: song.year || new Date().getFullYear(),
+          songs: [],
+        });
+      }
+      albumMap.get(albumKey)!.songs.push(song.id);
+    });
+
+    return Array.from(albumMap.entries()).map(([key, album], index) => ({
+      id: `album-${index}`,
+      ...album,
+    }));
+  }, [userSongs]);
+
+  // Derive artists from user songs
+  const derivedArtists = useMemo(() => {
+    const artistSet = new Set<string>();
+    userSongs.forEach((song) => artistSet.add(song.artist));
+    return Array.from(artistSet).map((name, index) => ({
+      id: `artist-${index}`,
+      name,
+    }));
+  }, [userSongs]);
+
+  // Derive genres from user songs
+  const derivedGenres = useMemo(() => {
+    const genreSet = new Set<string>();
+    userSongs.forEach((song) => {
+      if (song.genre) genreSet.add(song.genre);
+    });
+    return Array.from(genreSet);
+  }, [userSongs]);
+
+  // Helper functions for derived data
+  const getSongsByAlbum = useCallback(
+    (albumTitle: string) => {
+      return userSongs.filter((s) => s.album === albumTitle);
+    },
+    [userSongs]
+  );
+
+  const getAlbumsByArtist = useCallback(
+    (artistName: string) => {
+      return derivedAlbums.filter((a) => a.artist === artistName);
+    },
+    [derivedAlbums]
+  );
+
+  const getSongsByGenre = useCallback(
+    (genre: string) => {
+      return userSongs.filter((s) => s.genre === genre);
+    },
+    [userSongs]
+  );
 
   // Generate menu items based on current screen
   const menuItems = useMemo((): MenuItemData[] => {
@@ -80,42 +144,23 @@ export default function IPodMain() {
 
         case "music":
           return [
-            { id: "playlists", label: "Playlists", hasSubmenu: true },
             { id: "artists", label: "Artists", hasSubmenu: true },
             { id: "albums", label: "Albums", hasSubmenu: true },
             { id: "songs", label: "Songs", hasSubmenu: true },
             { id: "genres", label: "Genres", hasSubmenu: true },
-            ...(userSongs.length > 0
-              ? [
-                  {
-                    id: "myMusic",
-                    label: "My Music",
-                    hasSubmenu: true,
-                    rightText: `${userSongs.length}`,
-                  },
-                ]
-              : []),
             { id: "addMusic", label: "Add Music...", hasSubmenu: true },
           ];
 
-        case "playlists":
-          return playlists.map((p) => ({
-            id: `playlist-${p.id}`,
-            label: p.name,
-            hasSubmenu: true,
-            rightText: `${p.songs.length}`,
-          }));
-
         case "artists":
-          return artists.map((a) => ({
-            id: `artist-${a.id}`,
+          return derivedArtists.map((a) => ({
+            id: `artist-${a.name}`,
             label: a.name,
             hasSubmenu: true,
           }));
 
         case "albums":
-          return albums.map((a) => ({
-            id: `album-${a.id}`,
+          return derivedAlbums.map((a) => ({
+            id: `album-${a.title}-${a.artist}`,
             label: a.title,
             hasSubmenu: true,
             rightText: a.artist,
@@ -128,15 +173,8 @@ export default function IPodMain() {
             rightText: s.artist,
           }));
 
-        case "myMusic":
-          return userSongs.map((s) => ({
-            id: `song-${s.id}`,
-            label: s.title,
-            rightText: s.artist,
-          }));
-
         case "genres":
-          return genres.map((g) => ({
+          return derivedGenres.map((g) => ({
             id: `genre-${g}`,
             label: g,
             hasSubmenu: true,
@@ -191,6 +229,7 @@ export default function IPodMain() {
               hasSubmenu: true,
               rightText: settings.clicker ? "On" : "Off",
             },
+            { id: "resetSettings", label: "Reset Settings" },
           ];
 
         default:
@@ -199,7 +238,7 @@ export default function IPodMain() {
             const artistName = (data as { artistName: string })?.artistName;
             const artistAlbums = getAlbumsByArtist(artistName);
             return artistAlbums.map((a) => ({
-              id: `album-${a.id}`,
+              id: `album-${a.title}-${a.artist}`,
               label: a.title,
               hasSubmenu: true,
               rightText: `${a.year}`,
@@ -213,16 +252,6 @@ export default function IPodMain() {
               id: `song-${s.id}`,
               label: s.title,
               rightText: formatDuration(s.duration),
-            }));
-          }
-
-          if (screenId.startsWith("playlist-")) {
-            const songIds = (data as { songIds: string[] })?.songIds || [];
-            const playlistSongs = getSongsByIds(songIds);
-            return playlistSongs.map((s) => ({
-              id: `song-${s.id}`,
-              label: s.title,
-              rightText: s.artist,
             }));
           }
 
@@ -251,7 +280,18 @@ export default function IPodMain() {
     }
 
     return [];
-  }, [currentScreen, currentSong, settings, userSongs, allSongs]);
+  }, [
+    currentScreen,
+    currentSong,
+    settings,
+    allSongs,
+    derivedAlbums,
+    derivedArtists,
+    derivedGenres,
+    getAlbumsByArtist,
+    getSongsByAlbum,
+    getSongsByGenre,
+  ]);
 
   const handleSelect = useCallback(() => {
     const { screenId, screenType, data } = currentScreen;
@@ -338,14 +378,7 @@ export default function IPodMain() {
     }
 
     // Music submenu
-    else if (itemId === "playlists") {
-      navigateTo({
-        screenType: "menu",
-        screenId: "playlists",
-        title: "Playlists",
-        selectedIndex: 0,
-      });
-    } else if (itemId === "artists") {
+    else if (itemId === "artists") {
       navigateTo({
         screenType: "menu",
         screenId: "artists",
@@ -373,13 +406,6 @@ export default function IPodMain() {
         title: "Genres",
         selectedIndex: 0,
       });
-    } else if (itemId === "myMusic") {
-      navigateTo({
-        screenType: "menu",
-        screenId: "myMusic",
-        title: "My Music",
-        selectedIndex: 0,
-      });
     } else if (itemId === "addMusic") {
       navigateTo({
         screenType: "musicUpload",
@@ -389,23 +415,23 @@ export default function IPodMain() {
       });
     }
 
-    // Artists
-    else if (itemId.startsWith("artist-")) {
-      const artist = artists.find((a) => `artist-${a.id}` === itemId);
-      if (artist) {
-        navigateTo({
-          screenType: "menu",
-          screenId: itemId,
-          title: artist.name,
-          selectedIndex: 0,
-          data: { artistName: artist.name },
-        });
-      }
+    // Artists (id format: artist-{name})
+    else if (itemId.startsWith("artist-") && screenId === "artists") {
+      const artistName = itemId.replace("artist-", "");
+      navigateTo({
+        screenType: "menu",
+        screenId: itemId,
+        title: artistName,
+        selectedIndex: 0,
+        data: { artistName },
+      });
     }
 
-    // Albums
+    // Albums (id format: album-{title}-{artist})
     else if (itemId.startsWith("album-")) {
-      const album = albums.find((a) => `album-${a.id}` === itemId);
+      const album = derivedAlbums.find(
+        (a) => `album-${a.title}-${a.artist}` === itemId
+      );
       if (album) {
         navigateTo({
           screenType: "menu",
@@ -413,20 +439,6 @@ export default function IPodMain() {
           title: album.title,
           selectedIndex: 0,
           data: { albumTitle: album.title },
-        });
-      }
-    }
-
-    // Playlists
-    else if (itemId.startsWith("playlist-")) {
-      const playlist = playlists.find((p) => `playlist-${p.id}` === itemId);
-      if (playlist) {
-        navigateTo({
-          screenType: "menu",
-          screenId: itemId,
-          title: playlist.name,
-          selectedIndex: 0,
-          data: { songIds: playlist.songs },
         });
       }
     }
@@ -446,7 +458,6 @@ export default function IPodMain() {
     // Songs - play them
     else if (itemId.startsWith("song-")) {
       const songId = itemId.replace("song-", "");
-      // Check both mock songs and user songs
       const song = allSongs.find((s) => s.id === songId);
       if (song) {
         // Get the current list of songs for the queue
@@ -454,14 +465,9 @@ export default function IPodMain() {
 
         if (screenId === "songs") {
           queue = allSongs;
-        } else if (screenId === "myMusic") {
-          queue = userSongs;
         } else if (screenId.startsWith("album-")) {
           const albumTitle = (data as { albumTitle: string })?.albumTitle;
           queue = getSongsByAlbum(albumTitle);
-        } else if (screenId.startsWith("playlist-")) {
-          const songIds = (data as { songIds: string[] })?.songIds || [];
-          queue = getSongsByIds(songIds);
         } else if (screenId.startsWith("genre-")) {
           const genre = (data as { genre: string })?.genre;
           queue = getSongsByGenre(genre);
@@ -592,6 +598,12 @@ export default function IPodMain() {
         selectedIndex: settings.clicker ? 0 : 1,
         data: { settingType: "clicker" },
       });
+    } else if (itemId === "resetSettings") {
+      // Clear all music from IndexedDB and state
+      musicDB.clearAll().then(() => {
+        setUserSongs([]);
+        setUserLibraryLoaded(false);
+      });
     }
   }, [
     currentScreen,
@@ -604,7 +616,9 @@ export default function IPodMain() {
     updateSettings,
     setCurrentPhoto,
     allSongs,
-    userSongs,
+    derivedAlbums,
+    getSongsByAlbum,
+    getSongsByGenre,
   ]);
 
   // Render content based on screen type

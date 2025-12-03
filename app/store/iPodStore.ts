@@ -1,7 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { Song, iPodSettings, ScreenType } from "../types";
-import { songs } from "../data/mockData";
 
 interface NavigationItem {
   screenType: ScreenType;
@@ -280,10 +279,8 @@ export const useIPodStore = create<iPodState>()(
 
       shufflePlay: () => {
         const state = get();
-        // Combine mock songs and user songs
-        const allSongs = [...songs, ...state.userSongs];
-        const shuffled = allSongs.sort(() => Math.random() - 0.5);
-        if (shuffled.length === 0) return;
+        if (state.userSongs.length === 0) return;
+        const shuffled = [...state.userSongs].sort(() => Math.random() - 0.5);
         set({
           currentSong: shuffled[0],
           isPlaying: true,
