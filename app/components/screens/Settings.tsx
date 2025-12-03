@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { useIPodStore } from "../../store/iPodStore";
+import { photos } from "../../data/mockData";
 import MenuList, { MenuItemData } from "../menus/MenuList";
 
 interface SettingsProps {
@@ -13,7 +14,7 @@ export default function Settings({
   settingType,
   selectedIndex,
 }: SettingsProps) {
-  const { settings, updateSettings } = useIPodStore();
+  const { settings, updateSettings, userSongs } = useIPodStore();
   const isInitialMount = useRef(true);
 
   // Sync brightness value when wheel scrolls
@@ -33,10 +34,13 @@ export default function Settings({
   }, [settingType, selectedIndex, settings.brightness, updateSettings]);
 
   if (settingType === "about") {
+    const songsCount = userSongs.length;
+    const photosCount = photos.length;
+
     const items: MenuItemData[] = [
       { id: "name", label: "Name", rightText: "iPod Web" },
-      { id: "songs", label: "Songs", rightText: "24" },
-      { id: "photos", label: "Photos", rightText: "15" },
+      { id: "songs", label: "Songs", rightText: String(songsCount) },
+      { id: "photos", label: "Photos", rightText: String(photosCount) },
       { id: "capacity", label: "Capacity", rightText: "∞" },
       { id: "available", label: "Available", rightText: "∞" },
       { id: "version", label: "Version", rightText: "1.0.0" },
@@ -128,17 +132,26 @@ export default function Settings({
     // selectedIndex is used as the brightness value (0-100)
     // We show selectedIndex as the current adjustment level
     const displayBrightness = selectedIndex;
-    
+
     return (
       <div className="brightness-screen">
         <div className="brightness-control">
           {/* Dim sun icon */}
-          <svg className="brightness-icon dim" viewBox="0 0 24 24" fill="currentColor">
+          <svg
+            className="brightness-icon dim"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+          >
             <circle cx="12" cy="12" r="4" />
-            <path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" 
-                  stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" fill="none"/>
+            <path
+              d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              fill="none"
+            />
           </svg>
-          
+
           {/* Slider track */}
           <div className="brightness-slider">
             <div className="brightness-track">
@@ -146,18 +159,27 @@ export default function Settings({
                 className="brightness-fill"
                 style={{ width: `${displayBrightness}%` }}
               />
-              <div 
+              <div
                 className="brightness-thumb"
                 style={{ left: `${displayBrightness}%` }}
               />
             </div>
           </div>
-          
+
           {/* Bright sun icon */}
-          <svg className="brightness-icon bright" viewBox="0 0 24 24" fill="currentColor">
+          <svg
+            className="brightness-icon bright"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+          >
             <circle cx="12" cy="12" r="5" />
-            <path d="M12 1v3M12 20v3M3.51 3.51l2.12 2.12M18.37 18.37l2.12 2.12M1 12h3M20 12h3M3.51 20.49l2.12-2.12M18.37 5.63l2.12-2.12" 
-                  stroke="currentColor" strokeWidth="2" strokeLinecap="round" fill="none"/>
+            <path
+              d="M12 1v3M12 20v3M3.51 3.51l2.12 2.12M18.37 18.37l2.12 2.12M1 12h3M20 12h3M3.51 20.49l2.12-2.12M18.37 5.63l2.12-2.12"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              fill="none"
+            />
           </svg>
         </div>
       </div>

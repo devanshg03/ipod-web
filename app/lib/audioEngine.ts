@@ -143,8 +143,8 @@ class AudioEngine {
           reject(new Error("Audio not ready"));
         };
 
-        this.audio.addEventListener("canplay", handleCanPlay, { once: true });
-        this.audio.addEventListener("error", handleError, { once: true });
+        this.audio!.addEventListener("canplay", handleCanPlay, { once: true });
+        this.audio!.addEventListener("error", handleError, { once: true });
       });
     }
 

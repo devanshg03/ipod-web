@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <!-- Body -->
+  <rect x="6" y="1" width="20" height="30" rx="3" fill="#F7F7F7" stroke="#D1D1D1" stroke-width="1"/>
+  
+  <!-- Screen Bezel -->
+  <rect x="8" y="3" width="16" height="12" rx="1" fill="#2C2C2C"/>
+  
+  <!-- Screen Display -->
+  <rect x="9" y="4" width="14" height="10" fill="#8DA4B6"/>
+  <path d="M9 4H23V9H9V4Z" fill="#ACBEC9"/> <!-- Reflection/Gradient hint -->
+  
+  <!-- Click Wheel -->
+  <circle cx="16" cy="22" r="6" fill="#DDDDDD" stroke="#CCCCCC" stroke-width="0.5"/>
+  
+  <!-- Center Button -->
+  <circle cx="16" cy="22" r="2" fill="#FFFFFF" stroke="#CCCCCC" stroke-width="0.5"/>
+  
+  <!-- Menu Text (Simplified as a line) -->
+  <rect x="14.5" y="17.5" width="3" height="0.5" fill="#999999"/>
+</svg>
