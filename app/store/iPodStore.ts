@@ -32,6 +32,17 @@ interface iPodState {
   // Sleep/Wake
   isSleeping: boolean;
 
+  // Hold switch
+  isHoldOn: boolean;
+
+  // Volume overlay
+  showVolumeOverlay: boolean;
+  volumeOverlayTimeout: NodeJS.Timeout | null;
+
+  // Seeking (hold forward/back)
+  isSeeking: boolean;
+  seekDirection: "forward" | "backward" | null;
+
   // Backlight
   backlightOn: boolean;
   lastActivityTime: number;
@@ -99,6 +110,19 @@ interface iPodState {
   addUserSong: (song: Song) => void;
   removeUserSong: (songId: string) => void;
   setUserLibraryLoaded: (loaded: boolean) => void;
+
+  // Hold switch
+  toggleHold: () => void;
+  setHold: (on: boolean) => void;
+
+  // Volume
+  adjustVolume: (delta: number) => void;
+  showVolume: () => void;
+  hideVolume: () => void;
+
+  // Seeking
+  startSeeking: (direction: "forward" | "backward") => void;
+  stopSeeking: () => void;
 }
 
 const defaultSettings: iPodSettings = {
@@ -134,6 +158,11 @@ export const useIPodStore = create<iPodState>()(
       isScrubbing: false,
       songRatings: {},
       isSleeping: false,
+      isHoldOn: false,
+      showVolumeOverlay: false,
+      volumeOverlayTimeout: null,
+      isSeeking: false,
+      seekDirection: null,
       backlightOn: true,
       lastActivityTime: Date.now(),
 
@@ -418,6 +447,63 @@ export const useIPodStore = create<iPodState>()(
         })),
 
       setUserLibraryLoaded: (loaded) => set({ userLibraryLoaded: loaded }),
+
+      // Hold switch actions
+      toggleHold: () =>
+        set((state) => ({
+          isHoldOn: !state.isHoldOn,
+        })),
+
+      setHold: (on) => set({ isHoldOn: on }),
+
+      // Volume actions
+      adjustVolume: (delta) =>
+        set((state) => {
+          const newVolume = Math.max(
+            0,
+            Math.min(100, state.settings.volume + delta)
+          );
+          return {
+            settings: { ...state.settings, volume: newVolume },
+            showVolumeOverlay: true,
+            lastActivityTime: Date.now(),
+            backlightOn: true,
+          };
+        }),
+
+      showVolume: () => {
+        const state = get();
+        if (state.volumeOverlayTimeout) {
+          clearTimeout(state.volumeOverlayTimeout);
+        }
+        const timeout = setTimeout(() => {
+          set({ showVolumeOverlay: false, volumeOverlayTimeout: null });
+        }, 1500);
+        set({ showVolumeOverlay: true, volumeOverlayTimeout: timeout });
+      },
+
+      hideVolume: () => {
+        const state = get();
+        if (state.volumeOverlayTimeout) {
+          clearTimeout(state.volumeOverlayTimeout);
+        }
+        set({ showVolumeOverlay: false, volumeOverlayTimeout: null });
+      },
+
+      // Seeking actions
+      startSeeking: (direction) =>
+        set({
+          isSeeking: true,
+          seekDirection: direction,
+          lastActivityTime: Date.now(),
+          backlightOn: true,
+        }),
+
+      stopSeeking: () =>
+        set({
+          isSeeking: false,
+          seekDirection: null,
+        }),
     }),
     {
       name: "ipod-storage",

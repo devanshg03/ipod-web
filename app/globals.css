@@ -3,8 +3,8 @@
 :root {
   --ipod-body: linear-gradient(180deg, #e8e8e8 0%, #d4d4d4 50%, #c0c0c0 100%);
   --ipod-bezel: #1a1a1a;
-  --ipod-screen-bg: #b8c5b8;
-  --ipod-screen-bg-lit: #cddacd;
+  --ipod-screen-bg: #d0d0d0;
+  --ipod-screen-bg-lit: #e8e8e8;
   --ipod-text: #1a1a1a;
   --ipod-selection: #2563eb;
   --ipod-wheel: linear-gradient(180deg, #f5f5f5 0%, #e0e0e0 50%, #d0d0d0 100%);
@@ -66,6 +66,7 @@ body {
 
 .ipod-top-section {
   flex: 0 0 auto;
+  position: relative;
 }
 
 .ipod-bottom-section {
@@ -118,11 +119,35 @@ body {
   width: 30px;
   display: flex;
   align-items: center;
+  gap: 2px;
+}
+
+.status-icon {
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
 }
 
 .play-icon {
   width: 10px;
   height: 10px;
+}
+
+.pause-icon {
+  width: 8px;
+  height: 8px;
+}
+
+.lock-icon {
+  width: 8px;
+  height: 8px;
+}
+
+.shuffle-icon,
+.repeat-icon {
+  width: 10px;
+  height: 10px;
+  margin-right: 3px;
 }
 
 .status-title {
@@ -132,9 +157,10 @@ body {
 }
 
 .status-right {
-  width: 30px;
   display: flex;
+  align-items: center;
   justify-content: flex-end;
+  gap: 3px;
 }
 
 .battery {
@@ -1001,6 +1027,178 @@ body {
   opacity: 0.7;
 }
 
+/* Hold Switch - only the slider knob visible at top edge */
+.hold-switch {
+  position: absolute;
+  top: 0;
+  right: 50px;
+  width: 24px;
+  height: 4px;
+  cursor: pointer;
+  z-index: 10;
+}
+
+.hold-switch-track {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.hold-switch-knob {
+  position: absolute;
+  top: -5px;
+  left: 0;
+  width: 10px;
+  height: 5px;
+  background: linear-gradient(180deg, #c8c8c8 0%, #a0a0a0 100%);
+  border-radius: 0 0 2px 2px;
+  transition: left 0.15s ease;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+}
+
+.hold-switch.on .hold-switch-knob {
+  left: 14px;
+}
+
+/* Orange not visible from front view */
+.hold-switch-orange {
+  display: none;
+}
+
+/* Volume Overlay */
+.volume-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.85);
+  border-radius: 8px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  z-index: 100;
+  animation: volumeFadeIn 0.15s ease-out;
+}
+
+@keyframes volumeFadeIn {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+  to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+.volume-icon {
+  width: 20px;
+  height: 20px;
+  color: white;
+  flex-shrink: 0;
+}
+
+.volume-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.volume-bar-container {
+  width: 120px;
+}
+
+.volume-bar {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.volume-bar-fill {
+  height: 100%;
+  background: white;
+  border-radius: 3px;
+  transition: width 0.1s ease-out;
+}
+
+/* Hold Indicator */
+.hold-indicator {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(255, 255, 255, 0.95);
+  border: 2px solid #1a1a1a;
+  border-radius: 8px;
+  padding: 12px 16px;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  animation: holdAppear 2s ease-out forwards;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.hold-indicator svg {
+  width: 20px;
+  height: 20px;
+  color: #1a1a1a;
+}
+
+.hold-indicator::after {
+  content: 'Hold';
+  font-size: 12px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+@keyframes holdAppear {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+  15% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  75% { opacity: 1; }
+  100% { opacity: 0; pointer-events: none; }
+}
+
+/* Seeking state for buttons */
+.wheel-button.seeking {
+  color: var(--ipod-selection);
+}
+
+/* Screen LCD Texture - subtle pixel grid */
+.ipod-screen::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: 
+    linear-gradient(0deg, transparent 50%, rgba(0, 0, 0, 0.02) 50%),
+    linear-gradient(90deg, transparent 50%, rgba(0, 0, 0, 0.02) 50%);
+  background-size: 2px 2px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Chrome Bezel Effect */
+.ipod-screen {
+  position: relative;
+  box-shadow: 
+    inset 0 2px 8px rgba(0, 0, 0, 0.3),
+    0 1px 2px rgba(255, 255, 255, 0.5),
+    0 0 0 1px rgba(255, 255, 255, 0.3),
+    0 0 0 2px rgba(0, 0, 0, 0.1);
+}
+
+/* Click Wheel Texture - subtle radial grooves */
+.click-wheel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: repeating-conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    transparent 2deg,
+    rgba(0, 0, 0, 0.02) 2deg,
+    rgba(0, 0, 0, 0.02) 4deg
+  );
+  pointer-events: none;
+}
+
+/* Headphone jack not visible from front view */
 
 /* Responsive */
 @media (max-width: 400px) {
